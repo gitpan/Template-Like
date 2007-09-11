@@ -6,7 +6,7 @@ use IO::File;
 
 use Template::Like::Processor;
 
-$Template::Like::VERSION = '0.01';
+$Template::Like::VERSION = '0.02';
 
 #=====================================================================
 # new
@@ -97,15 +97,141 @@ Template::Like - Lightweight Template Engine.
 
 =head1 SYNOPSIS
 
+    #!/usr/bin/perl
+    
+    use lib 'lib';
+    use strict;
+    use Template::Like;
+    
+    my $input = q{
+    [% var %]
+    [% FOREACH var = vars %]
+    ÅE[% var.name %]
+    [% END %]
+    [% var %]
+    [% IF bool %]TURE!![% ELSE %]FALSE!![% END %]
+    [% UNLESS bool %]TURE!![% ELSE %]FALSE!![% END %]
+    };
+    
+    my $param = {
+      var  => "HOGE",
+      vars => [ { { name => "FOO" } }, { { name => "BAR" } } ],
+      bool => 1
+    };
+    
+    my $t = Template::Like->new;
+    
+    my $output = "";
+    
+    $t->process(\$input, $param, \$output);
+    
+    print $output;
+    
+    exit;
+
+
+result
+
+
+    HOGE
+    
+    ÅEFOO
+    
+    ÅEBAR
+    
+    HOGE
+    TURE!!
+    FALSE!!
 
 
 =head1 DESCRIPTION
 
+=head2 Directive
 
+=over 4
 
-=head1 EXAMPLE
+=item GET
+=item SET
+=item USE
+=item CALL
+=item FOREACH
+=item WHILE
+=item IF
+=item UNLESS
+=item ELSIF
+=item ELSE
+=item END
+=item FILTER
+=item DUMMY
+=item INSERT
+=item INCLUDE
+=item PROCESS
 
+=back
 
+=head2 VMethods
+
+=head3 scalar
+
+=over 4
+
+=item defined
+=item length
+=item repeat
+=item replace
+=item match
+=item search
+=item split
+=item list
+=item hash
+=item size
+=item substr
+=item html
+=item uri
+
+=back
+
+=head3 array
+
+=over 4
+
+=item first
+=item last
+=item size
+=item max
+=item reverse
+=item join
+=item grep
+=item sort
+=item nsort
+=item unshift
+=item push
+=item shift
+=item pop
+=item unique
+=item merge
+=item slice
+=item splice
+=item list
+
+=back
+
+=head3 hash
+
+=over 4
+
+=item keys
+=item values
+=item each
+=item defined
+=item exists
+=item size
+=item item
+=item list
+
+=back
+
+official L<http://www.template-like.org>
 
 =head1 SEE ALSO
 
