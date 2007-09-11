@@ -6,7 +6,7 @@ use IO::File;
 
 use Template::Like::Processor;
 
-$Template::Like::VERSION = '0.02';
+$Template::Like::VERSION = '0.03';
 
 #=====================================================================
 # new
@@ -106,7 +106,7 @@ Template::Like - Lightweight Template Engine.
     my $input = q{
     [% var %]
     [% FOREACH var = vars %]
-    ÅE[% var.name %]
+    - [% var.name %]
     [% END %]
     [% var %]
     [% IF bool %]TURE!![% ELSE %]FALSE!![% END %]
@@ -135,9 +135,9 @@ result
 
     HOGE
     
-    ÅEFOO
+    - FOO
     
-    ÅEBAR
+    - BAR
     
     HOGE
     TURE!!
@@ -151,20 +151,35 @@ result
 =over 4
 
 =item GET
+
 =item SET
+
 =item USE
+
 =item CALL
+
 =item FOREACH
+
 =item WHILE
+
 =item IF
+
 =item UNLESS
+
 =item ELSIF
+
 =item ELSE
+
 =item END
+
 =item FILTER
+
 =item DUMMY
+
 =item INSERT
+
 =item INCLUDE
+
 =item PROCESS
 
 =back
@@ -176,17 +191,29 @@ result
 =over 4
 
 =item defined
+
 =item length
+
 =item repeat
+
 =item replace
+
 =item match
+
 =item search
+
 =item split
+
 =item list
+
 =item hash
+
 =item size
+
 =item substr
+
 =item html
+
 =item uri
 
 =back
@@ -196,22 +223,39 @@ result
 =over 4
 
 =item first
+
 =item last
+
 =item size
+
 =item max
+
 =item reverse
+
 =item join
+
 =item grep
+
 =item sort
+
 =item nsort
+
 =item unshift
+
 =item push
+
 =item shift
+
 =item pop
+
 =item unique
+
 =item merge
+
 =item slice
+
 =item splice
+
 =item list
 
 =back
@@ -221,12 +265,19 @@ result
 =over 4
 
 =item keys
+
 =item values
+
 =item each
+
 =item defined
+
 =item exists
+
 =item size
+
 =item item
+
 =item list
 
 =back

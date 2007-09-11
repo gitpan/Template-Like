@@ -1,5 +1,11 @@
 Revision history for Perl extension Template::Like.
 
+0.03  Thu Sep 11 16:00:00 2007
+	- edit document.
+
+0.02  Thu Sep 11 09:00:00 2007
+	- add document.
+
 0.01  Thu Jul 12 21:00:46 2007
 	- original version; created by h2xs 1.23 with options
 		-Xan Template::Like
