@@ -340,14 +340,6 @@ sub compile {
       $appendSet->( 'PRE_SPACE', $pre );
     }
     
-    if (length $post) {
-      $post=~s/\t/\\t/g;
-      $post=~s/\r/\\r/g;
-      $post=~s/\n/\\n/g;
-      $pre=~s/\"/\\\"/g;
-      $appendSet->( 'POST_SPACE', $post );
-    }
-    
     $ele=~s/^\s+//;
     $ele=~s/\s+$//;
     
@@ -389,6 +381,13 @@ sub compile {
       }
     }
     
+    if (length $post) {
+      $post=~s/\t/\\t/g;
+      $post=~s/\r/\\r/g;
+      $post=~s/\n/\\n/g;
+      $pre=~s/\"/\\\"/g;
+      $appendSet->( 'POST_SPACE', $post );
+    }
   }
   
   $appendSet->( 'TEXT', $escapeQuote->($$text_ref) ) if length $$text_ref;

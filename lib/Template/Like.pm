@@ -6,7 +6,7 @@ use IO::File;
 
 use Template::Like::Processor;
 
-$Template::Like::VERSION = '0.03';
+$Template::Like::VERSION = '0.04';
 
 #=====================================================================
 # new
@@ -115,7 +115,7 @@ Template::Like - Lightweight Template Engine.
     
     my $param = {
       var  => "HOGE",
-      vars => [ { { name => "FOO" } }, { { name => "BAR" } } ],
+      vars => [ { name => "FOO" }, { name => "BAR" } ],
       bool => 1
     };
     
