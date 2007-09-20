@@ -5,7 +5,7 @@ use Template::Like::Filters;
 use Template::Like::VMethods;
 
 use constant TAG_STYLE_SET => {
-  template1 => ['(?:\\[%|%%)', '(?:%\\]|%%)'],
+  template1 => ['[\\[%]%', '%[\\]%]'],
   template  => ['\\[%',   '%\\]'],
   metatext  => ['%%',   '%%'],
   star      => ['\\[\\*',   '\\*\\]'],
@@ -14,6 +14,13 @@ use constant TAG_STYLE_SET => {
   mason     => ['<%',   '>'],
   html      => ['<!--', '-->']
 };
+
+# CHOMP constants for PRE_CHOMP and POST_CHOMP
+use constant CHOMP_NONE      => 0; # do not remove whitespace
+use constant CHOMP_ALL       => 1; # remove whitespace up to newline
+use constant CHOMP_ONE       => 1; # new name for CHOMP_ALL
+use constant CHOMP_COLLAPSE  => 2; # collapse whitespace to a single space
+use constant CHOMP_GREEDY    => 3; # remove all whitespace including newlines
 
 # code set.
 my $codeSet = {
@@ -248,7 +255,7 @@ sub load {
       . join(',', $self->INCLUDE_PATH)
       . "]" if not $filepath;
     
-    die "file open endless loop [$filepath]" if ( $self->{'OPEND'}->{ $filepath } > 10 );
+    die "file open endless loop [$filepath]" if ( exists $self->{'OPEND'}->{ $filepath } && $self->{'OPEND'}->{ $filepath } > 10 );
     
     $self->{'OPEND'}->{ $filepath }++;
     
@@ -296,9 +303,6 @@ sub compile {
   my $start = $self->START_TAG;
   my $end   = $self->END_TAG;
   
-  $$text_ref=~s/\s*(${start})\-/$1/g;
-  $$text_ref=~s/\-(${end})\s*/$1/g;
-  
   my @endTask;
   my $code = '';
   
@@ -321,24 +325,35 @@ sub compile {
     return $str;
   };
   
-  while ( $$text_ref=~ s/^(.*?)(\s*)(?:$start(.*?)$end)(\s*)//sx ) {
+  while ( $$text_ref=~ s/^(.*?)(?:$start([-=~+]?)(.*?)([-=~+]?)$end)//sx ) {
     
-    my ($text, $pre, $ele, $post) = ($1, $2, $3, $4);
+    my ($text, $pre_chomp, $ele, $post_chomp) = ($1, $2, $3, $4);
     
     $text = '' unless defined $text;
-    $pre  = '' unless defined $pre;
     $ele  = '' unless defined $ele;
-    $post = '' unless defined $post;
+    $pre_chomp ||= $self->PRE_CHOMP || 0;
+    $post_chomp ||= $self->POST_CHOMP || 0;
+    $pre_chomp =~ tr/-=~+/1230/;
+    $post_chomp =~ tr/-=~+/1230/;
+    
+    if ($pre_chomp == CHOMP_ALL) { 
+        $text =~ s{ (\n|^) [^\S\n]* \z }{}mx;
+    } elsif ($pre_chomp == CHOMP_COLLAPSE) { 
+        $text =~ s{ (\s+) \z }{ }x;
+    } elsif ($pre_chomp == CHOMP_GREEDY) { 
+        $text =~ s{ (\s+) \z }{}x;
+    }
+    
+    if ($post_chomp == CHOMP_ALL) { 
+      $$text_ref =~ s{ ^ ([^\S\n]* \n) }{}x;
+    } elsif ($post_chomp == CHOMP_COLLAPSE) { 
+      $$text_ref =~ s{ ^ (\s+) }{ }x;
+    } elsif ($post_chomp == CHOMP_GREEDY) { 
+      $$text_ref =~ s{ ^ (\s+) }{}x;
+    }
     
     $appendSet->( 'TEXT', $escapeQuote->($text) ) if length $text;
     
-    if (length $pre) {
-      $pre=~s/\t/\\t/g;
-      $pre=~s/\r/\\r/g;
-      $pre=~s/\n/\\n/g;
-      $pre=~s/\"/\\\"/g;
-      $appendSet->( 'PRE_SPACE', $pre );
-    }
     
     $ele=~s/^\s+//;
     $ele=~s/\s+$//;
@@ -379,14 +394,6 @@ sub compile {
       else {
         $appendSet->( $self->expansion( $ele, 'GET', { get_directive => 1 } ) );
       }
-    }
-    
-    if (length $post) {
-      $post=~s/\t/\\t/g;
-      $post=~s/\r/\\r/g;
-      $post=~s/\n/\\n/g;
-      $pre=~s/\"/\\\"/g;
-      $appendSet->( 'POST_SPACE', $post );
     }
   }
   
