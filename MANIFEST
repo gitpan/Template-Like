@@ -1,6 +1,7 @@
 Changes
 lib/Template/Like.pm
 lib/Template/Like/Filters.pm
+lib/Template/Like/Plugin/Dumper.pm
 lib/Template/Like/Processor.pm
 lib/Template/Like/Stash.pm
 lib/Template/Like/VMethods.pm
@@ -16,5 +17,5 @@ t/input.t
 t/load_filters.t
 t/namespace.t
 t/output.t
+t/plugin.t
 t/tag_style.t
-t/Template-Like.t

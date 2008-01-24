@@ -42,7 +42,7 @@ my $codeSet = {
   PROCESS      => '$output.= $self->process(%s);',
   GET          => '$output.= %s;',
   SET          => '%s;',
-  USE          => '$self->plugin_use(%s);',
+  USE          => '$self->plugin_use(\'%s\', %s);',
   CALL         => '%s;',
   PRE_SPACE    => '$output.= "%s" unless $self->PRE_CHOMP;',
   POST_SPACE   => '$output.= "%s" unless $self->POST_CHOMP;',
@@ -360,12 +360,35 @@ sub compile {
     
     if ( length $ele ) {
       
-      if ( $ele=~/^(CALL|USE|GET|SET|IF|UNLESS|ELSIF|FILTER|INSERT|INCLUDE|DUMMY|PRE_SPACE|POST_SPACE)\s+(\S.*)$/sx ) {
+      if ( $ele=~/^(CALL|GET|SET|IF|UNLESS|ELSIF|FILTER|INSERT|INCLUDE|DUMMY|PRE_SPACE|POST_SPACE)\s+(\S.*)$/sx ) {
         my $directive = $1;
         my $expression = $2;
         my $code = $self->expansion( $expression, $directive );
         
         $appendSet->( $directive, $code );
+      }
+      
+      # USE
+      elsif ( $ele=~/^USE\s+(\S.*)$/sx ) {
+        
+        my $directive = 'USE';
+        my $text = $1;
+        my $code = '';
+        my $key  = '';
+        
+        # SET時のKEY指定有り
+        if ( $text=~/^(\w+)\s*=\s*(.+)$/ ) {
+          $key  = $1.'=';
+          $text = $2;
+        }
+        
+        # ARGUMENTS有り
+        if ( $text=~/^([a-zA-Z0-9\.]+)\s*(\(.+\))/ ) {
+          $text = $1;
+          $code = $self->expansion( $2, 'GET' );
+        }
+        
+        $appendSet->( $directive, $key.$text, $code );
       }
       
       # ELSE
@@ -410,6 +433,38 @@ sub insert {
 # 
 sub include {
   shift->clone->process(@_);
+}
+
+sub plugin_use {
+  my $self = shift;
+  my $key  = shift;
+  my $plugin_name = $key;
+  
+  if ($key=~/(.*)=(.*)/){
+    $key = $1;
+    $plugin_name = $2;
+  }
+  
+  for my $base ( $self->PLUGIN_BASE ) {
+    
+    my $plugin_class = $base.'::'.$plugin_name;
+    
+    # check class
+    unless (UNIVERSAL::can($plugin_class, 'can')) {
+      
+      # load class
+      eval "use $plugin_class;";
+    }
+    
+    unless ($@) {
+      
+      # set instance
+      $self->stash->set( $key, $plugin_class->new($self, @_) );
+      return ;
+    }
+  }
+  
+  die $@;
 }
 
 #-----------------------------

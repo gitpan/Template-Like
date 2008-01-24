@@ -1,7 +1,11 @@
 Revision history for Perl extension Template::Like.
 
+0.06  Thu Jan 24 22:40:39 2008
+	- USE support.
+  - add Template::Like::Plugin::Dumper.
+
 0.05  Thu Sep 20 09:00:00 2007
-	- PRE_CHOMP / POST_CHOMP 0-4 (-=~+) support
+	- PRE_CHOMP / POST_CHOMP 0-4 (-=~+) support.
 
 0.04  Wed Sep 12 09:00:00 2007
 	- SYNOPSIS code debug.
