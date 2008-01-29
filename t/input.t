@@ -1,13 +1,25 @@
-use Test::More tests => 12;
+use Test::More tests => 13;
 
 BEGIN { use_ok('Template::Like') };
+
+use Cwd;
+use File::Spec::Functions;
+
+my $old_cwd = Cwd::getcwd();
+
+my $tmpdir = File::Spec->tmpdir();
+
+my $abstmpdir = Cwd::abs_path($tmpdir);
+
+chdir $tmpdir;
 
 mkdir 'tmpl';
 
 my $t = Template::Like->new;
 
 my $input_grob;
-my $input_filename = "tmpl/test001.html";
+my $input_rel_path = catfile('tmpl', 'test001.html');
+my $input_abs_path = catfile($abstmpdir, 'test001.html');
 my $input_scalarref = q{<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
 <html>
 <head>
@@ -20,11 +32,11 @@ my $input_scalarref = q{<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
 </body>
 </html>};
 
-open TMPL, '>tmpl/test001.html';
+open TMPL, '>'.$input_rel_path;
 print TMPL $input_scalarref;
 close TMPL;
 
-open TMPL, '>/tmp/test001.html';
+open TMPL, '>'.$input_abs_path;
 print TMPL $input_scalarref;
 close TMPL;
 
@@ -51,8 +63,8 @@ my $output8;
 my $output9;
 my $output0;
 
-$t->process($input_filename, { group => "hoge foo bar" }, \$output1);
-open $input_grob, $input_filename;
+$t->process($input_rel_path, { group => "hoge foo bar" }, \$output1);
+open $input_grob, $input_rel_path;
 $t->process($input_grob, { group => "hoge foo bar" }, \$output2);
 close $input_grob;
 $t->process(\$input_scalarref, { group => "hoge foo bar" }, \$output3);
@@ -93,13 +105,18 @@ if ($@) { pass("relative security"); } else { fail("relative security"); }
 eval {$t2->process("../tmpl/test001.html", {}, \$output7);};
 if ($@) { fail("relative security"); } else { pass("relative security"); }
 
-$t3->process("///tmp/test001.html", { group => "hoge foo bar" }, \$output8);
+$t3->process($input_abs_path, { group => "hoge foo bar" }, \$output8);
 is($result, $output8, "slash");
+
+eval {$t2->process($input_abs_path, { group => "hoge foo bar" }, \$output8);};
+if ($@) { pass("absolute security"); } else { fail("absolute security"); }
 
 $t->process("tmpl/////test001.html", { group => "hoge foo bar" }, \$output9);
 is($result, $output9, "slash");
 
 
 unlink <tmpl/*>;
+
 rmdir 'tmpl';
 
+chdir $old_cwd;

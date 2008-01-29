@@ -3,21 +3,6 @@ package Template::Like::Plugin::Dumper;
 use strict;
 use Data::Dumper;
 
-my @DUMPER_ARGS = qw/
-  Indent
-  Pad
-  Varname
-  Purity
-  Useqq
-  Terse
-  Freezer
-  Toaster
-  Deepcopy
-  Quotekeys
-  Bless
-  Maxdepth
-/;
-
 #=====================================================================
 # new
 #---------------------------------------------------------------------
@@ -38,20 +23,16 @@ my @DUMPER_ARGS = qw/
 sub new {
   my $class   = shift;
   my $context = shift;
-  my $params  =     ref $_[0] ? $_[0] : 
-                defined $_[0] ? {@_}  : undef;
+  my $params  =     ref $_[0] ? $_[0] : {@_};
   
-  if (defined $params) {
-    no strict 'refs';
-    my $val;
-    for my $arg (@DUMPER_ARGS) {
-      if (defined ($val = $params->{ lc $arg }) or defined ($val = $params->{ $arg })) {
-        ${"Data\::Dumper\::$arg"} = $val;
-      }
-    }
+  my $dumper = Data::Dumper->new([]);
+  
+  for my $key ( keys %{ $params } ) {
+    my $method = ucfirst( $key );
+    $dumper->$method( $params->{ $key } );
   }
   
-  return bless { _CONTEXT => $context, params => $params }, $class;
+  return bless { _CONTEXT => $context, dumper => $dumper }, $class;
 }
 
 
@@ -74,7 +55,12 @@ sub new {
 sub dump {
   my $self = shift;
   
-  return Dumper @_;
+  $self->dumper->Reset;
+  $self->dumper->Values(\@_);
+  
+  my $data = $self->dumper->Dump(@_);
+  
+  return $data;
 }
 
 #=====================================================================
@@ -101,5 +87,10 @@ sub dump_html {
     $self->{'_CONTEXT'}->filter('html', $data)
   );
 }
+
+#=====================================================================
+# Data::Dumper Object
+#=====================================================================
+sub dumper { shift->{'dumper'} }
 
 1;

@@ -1,4 +1,4 @@
-use Test::More tests => 45;
+use Test::More tests => 49;
 
 BEGIN { use_ok('Template::Like') };
 
@@ -13,6 +13,23 @@ my $t = Template::Like->new( DEBUG => 0 );
   my $result = q{var};
   $t->process(\$input, { var => "var" }, \$output);
   is($result, $output, "var");
+}
+
+#-----------------------------
+# CALL
+#-----------------------------
+{
+  my $output;
+  my $input  = q{[% CALL var.exec %]};
+  my $result = q{};
+  my $testobj_call = TESTOBJ_CALL->new;
+  $t->process(\$input, { var => $testobj_call }, \$output);
+  is($result, $output, "call1a");
+  is(1, $testobj_call->{'cnt'}, "call1b");
+  $t->process(\$input, { var => $testobj_call }, \$output);
+  is($result, $output, "call2a");
+  is(2, $testobj_call->{'cnt'}, "call2b");
+  {package TESTOBJ_CALL;sub new { bless { cnt => 0 } };sub exec { $_[0]->{'cnt'}++ };};
 }
 
 #-----------------------------

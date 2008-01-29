@@ -1,5 +1,9 @@
 Revision history for Perl extension Template::Like.
 
+0.07  Tue Jan 29 22:12:26 2008
+	- USE Dumper(index=4,varname='FOO') syntax support.
+	- input.t and output.t use tmpdir.
+
 0.06  Thu Jan 24 22:40:39 2008
 	- USE support.
   - add Template::Like::Plugin::Dumper.

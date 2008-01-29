@@ -2,7 +2,20 @@ use Test::More tests => 8;
 
 BEGIN { use_ok('Template::Like') };
 
-mkdir 'tmpl' if !-d 'tmpl';
+
+use Cwd;
+use File::Spec::Functions;
+
+my $old_cwd = Cwd::getcwd();
+
+my $tmpdir = File::Spec->tmpdir();
+
+my $abstmpdir = Cwd::abs_path($tmpdir);
+
+chdir $tmpdir;
+
+mkdir 'tmpl';
+
 
 my $t = Template::Like->new;
 my $t2 = Template::Like->new({ OUTPUT_PATH => "tmpl/" });
@@ -76,9 +89,10 @@ is($result, $output5, "filename and output_path2");
 is($result, $output6, "Apache::Request");
 is($result, $output7, "arrayref");
 
+
 unlink <tmpl/*>;
+
 rmdir 'tmpl';
 
-
-
+chdir $old_cwd;
 

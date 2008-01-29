@@ -385,7 +385,7 @@ sub compile {
         # ARGUMENTS有り
         if ( $text=~/^([a-zA-Z0-9\.]+)\s*(\(.+\))/ ) {
           $text = $1;
-          $code = $self->expansion( $2, 'GET' );
+          $code = $self->expansion( $2, 'USE' );
         }
         
         $appendSet->( $directive, $key.$text, $code );
@@ -522,7 +522,7 @@ sub expansion {
         ((?!\_)[\$\.]?\w+)\(       # variable identifier
       |
         # an identifier matches in $9
-        ((?!\_)[\$\.]?\w+)\s*\=\s+ # variable identifier
+        ((?!\_)[\$\.]?\w+)\s*\=(?![=>]) # variable identifier
       |
         # an identifier matches in $10
         ((?!\_)[\$\.]?\w+)         # variable identifier
@@ -588,6 +588,35 @@ sub expansion {
       else {
         $autoSemiColon->();
         $code.= "\$stash->get('$token', ";
+      }
+    }
+    
+    elsif (defined ($token = $9) && $directive eq 'USE') {
+      
+      # method after dot.
+      if ( $token=~/^\./ && $code=~/\)$/ ) {
+        $token = substr($token, 1);
+        $code.= "->{'$token'} =";
+        $codeOffset = length $code;
+      }
+      
+      # first dollar.
+      elsif ( $token=~/^\$(.*)$/ ) {
+        $autoSemiColon->();
+        $code.= "$1 =>";
+        $codeOffset = length $code;
+      }
+      
+      # first dot.
+      elsif ( $token=~/^\.(.*)$/ ) {
+        $code.= "->{'$1'} =";
+        $codeOffset = length $code;
+      }
+      
+      else {
+        $autoSemiColon->();
+        $code.= "$token =>";
+        $codeOffset = length $code;
       }
     }
     
