@@ -10,6 +10,7 @@ MANIFEST			This list of files
 META.yml
 README
 t/constant.t
+t/directives.t
 t/element.t
 t/exception.t
 t/filter.t
@@ -18,4 +19,5 @@ t/load_filters.t
 t/namespace.t
 t/output.t
 t/plugin.t
+t/Plugin/Test/OurPlugin.pm
 t/tag_style.t

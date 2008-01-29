@@ -374,21 +374,29 @@ sub compile {
         my $directive = 'USE';
         my $text = $1;
         my $code = '';
+        my @gets = '';
         my $key  = '';
         
-        # SET時のKEY指定有り
+        # SET
         if ( $text=~/^(\w+)\s*=\s*(.+)$/ ) {
           $key  = $1.'=';
           $text = $2;
         }
         
-        # ARGUMENTS有り
-        if ( $text=~/^([a-zA-Z0-9\.]+)\s*(\(.+\))/ ) {
+        # ARGUMENTS
+        if ( $text=~/^([a-zA-Z0-9\.]+)(\(.*)$/ ) {
           $text = $1;
-          $code = $self->expansion( $2, 'USE' );
+          ( $code, @gets ) = $self->expansion( $2, 'USE' );
+        }
+        
+        elsif ( $text=~/^([a-zA-Z0-9\.]+)\s*;(.*)$/ ) {
+          $text = $1;
+          @gets = $self->expansion( $2, 'GET' );
         }
         
         $appendSet->( $directive, $key.$text, $code );
+        
+        $appendSet->( 'GET', $_ ) for ( grep /./, @gets );
       }
       
       # ELSE
@@ -449,22 +457,15 @@ sub plugin_use {
     
     my $plugin_class = $base.'::'.$plugin_name;
     
-    # check class
-    unless (UNIVERSAL::can($plugin_class, 'can')) {
-      
-      # load class
-      eval "use $plugin_class;";
-    }
+    UNIVERSAL::can($plugin_class, 'can') || eval "use $plugin_class;";
     
     unless ($@) {
-      
-      # set instance
       $self->stash->set( $key, $plugin_class->new($self, @_) );
-      return ;
+      return;
     }
   }
   
-  die $@;
+  die ($@) if ($@);
 }
 
 #-----------------------------
@@ -487,10 +488,10 @@ sub expansion {
   my $code = '';
   my $codeOffset = 0;
   
-  my $autoSemiColon = sub { if ($code=~s/([\)\"\'\d])(\s*)$/$1;$2/) { $codeOffset = length $code; } };
+#  my $autoSemiColon = sub { if ($code=~s/([\)\"\'\d])(\s*)$/$1;$2/) { $codeOffset = length $code; } };
   
   while ($expression =~
-    /
+    s/
       # strip out any comments
       (\#[^\n]*)
      |
@@ -539,8 +540,8 @@ sub expansion {
         |   \.\.?                  # n..n sequence
         |   \S+                    # something unquoted
         |   \s+                    # something unquoted
-        )                          # end of $10
-    /gmxo) {
+        )                          # end of $11
+    //mxo) {
     
     if (defined ($token = $3)) {
       $code.= $2 . $token . $2;
@@ -574,7 +575,7 @@ sub expansion {
       
       # first dollar.
       elsif ( $token=~/^\$(.*)$/ ) {
-        $autoSemiColon->();
+#        $autoSemiColon->();
         $code.= "\$stash->get('$1', ";
       }
       
@@ -586,7 +587,7 @@ sub expansion {
 
       # directive which can omit the dollar.
       else {
-        $autoSemiColon->();
+#        $autoSemiColon->();
         $code.= "\$stash->get('$token', ";
       }
     }
@@ -602,7 +603,7 @@ sub expansion {
       
       # first dollar.
       elsif ( $token=~/^\$(.*)$/ ) {
-        $autoSemiColon->();
+#        $autoSemiColon->();
         $code.= "$1 =>";
         $codeOffset = length $code;
       }
@@ -614,7 +615,7 @@ sub expansion {
       }
       
       else {
-        $autoSemiColon->();
+#        $autoSemiColon->();
         $code.= "$token =>";
         $codeOffset = length $code;
       }
@@ -633,7 +634,7 @@ sub expansion {
       
       # first dollar.
       elsif ( $token=~/^\$(.*)$/ ) {
-        $autoSemiColon->();
+#        $autoSemiColon->();
         $code.= "\$stash->{'$1'} =";
         $codeOffset = length $code;
       }
@@ -645,7 +646,7 @@ sub expansion {
       }
       
       else {
-        $autoSemiColon->();
+#        $autoSemiColon->();
         $code.= "\$stash->{'$token'} =";
         $codeOffset = length $code;
       }
@@ -662,7 +663,7 @@ sub expansion {
       
       # first dollar.
       elsif ( $token=~/^\$(.*)$/ ) {
-        $autoSemiColon->();
+#        $autoSemiColon->();
         $code.= "\$stash->get('$1')";
       }
       
@@ -673,7 +674,7 @@ sub expansion {
       }
       
       else {
-        $autoSemiColon->();
+#        $autoSemiColon->();
         $code.= "\$stash->get('$token')";
       }
     }
@@ -685,6 +686,10 @@ sub expansion {
         $code.= ' ne ';
       } elsif ( $token eq '_' ) {
         $code.= '.';
+      } elsif ( $token eq ';' && $directive eq 'USE' ) {
+        return ( $code, $self->expansion( $expression, 'GET' ) );
+      } elsif ( $token eq ';' && $directive eq 'GET' ) {
+        return ( $code, $self->expansion( $expression, 'GET' ) );
       } else {
         $code.= $token;
       }
