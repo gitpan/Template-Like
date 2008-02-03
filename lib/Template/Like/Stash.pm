@@ -44,7 +44,7 @@ sub get {
     return $ret->( @_ );
   }
   
-  return defined $ret ? $ret : '';
+  return defined $ret ? $ret : wantarray ? () : '';
 }
 
 sub next {
@@ -77,7 +77,7 @@ sub next {
     return $val->();
   }
   
-  return defined $val ? $val : '';
+  return defined $val ? $val : wantarray ? () : '';
 }
 
 1;
