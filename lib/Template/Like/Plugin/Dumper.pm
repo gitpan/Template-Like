@@ -11,25 +11,27 @@ use Data::Dumper;
 # <% Dumper.dump(variable) %>
 #---------------------------------------------------------------------
 # - args
-# $params    ... PARAMS ( HASHREF )
+# $params ... PARAMS ( HASHREF )
 #---------------------------------------------------------------------
 # - returns
 # Template::Like::Plugin::Dumper Object.
 #---------------------------------------------------------------------
 # - Example
-# <% USE Dumper %>
+# <% USE Dumper(indent=4) %>
 # <% Dumper.dump(variable) %>
 #=====================================================================
 sub new {
   my $class   = shift;
   my $context = shift;
-  my $params  =     ref $_[0] ? $_[0] : {@_};
+  my $params  = ref $_[0] ? $_[0] : {@_};
   
   my $dumper = Data::Dumper->new([]);
   
   for my $key ( keys %{ $params } ) {
     my $method = ucfirst( $key );
-    $dumper->$method( $params->{ $key } );
+    if ($dumper->can($method)) {
+      $dumper->$method( $params->{ $key } );
+    }
   }
   
   return bless { _CONTEXT => $context, dumper => $dumper }, $class;

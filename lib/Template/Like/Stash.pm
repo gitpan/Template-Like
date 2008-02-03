@@ -44,7 +44,7 @@ sub get {
     return $ret->( @_ );
   }
   
-  return $ret;
+  return defined $ret ? $ret : '';
 }
 
 sub next {
@@ -77,7 +77,7 @@ sub next {
     return $val->();
   }
   
-  return $val;
+  return defined $val ? $val : '';
 }
 
 1;

@@ -1,5 +1,9 @@
 Revision history for Perl extension Template::Like.
 
+0.09  Mon Feb  4 01:18:12 JST 2008
+	- semicolon support.
+	- input.t and output.t mkdir second argment set 0755.
+
 0.08  Wed Jan 30 04:05:42 2008
 	- [% USE Dumper(indent=4,varname='FOO'); Dumper.dump(var) %] syntax support.
 	- add directives.t
@@ -10,7 +14,7 @@ Revision history for Perl extension Template::Like.
 
 0.06  Thu Jan 24 22:40:39 2008
 	- USE support.
-  - add Template::Like::Plugin::Dumper.
+	- add Template::Like::Plugin::Dumper.
 
 0.05  Thu Sep 20 09:00:00 2007
 	- PRE_CHOMP / POST_CHOMP 0-4 (-=~+) support.

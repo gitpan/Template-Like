@@ -13,9 +13,9 @@ my $abstmpdir = Cwd::abs_path($tmpdir);
 
 chdir $tmpdir;
 
-mkdir 'tmpl';
+mkdir 'tmpl', 0755;
 
-my $t = Template::Like->new;
+my $t = Template::Like->new();
 
 my $input_grob;
 my $input_rel_path = catfile('tmpl', 'test001.html');

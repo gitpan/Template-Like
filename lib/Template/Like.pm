@@ -6,7 +6,7 @@ use IO::File;
 
 use Template::Like::Processor;
 
-$Template::Like::VERSION = '0.08';
+$Template::Like::VERSION = '0.09';
 
 #=====================================================================
 # new

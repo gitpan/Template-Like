@@ -14,7 +14,7 @@ my $abstmpdir = Cwd::abs_path($tmpdir);
 
 chdir $tmpdir;
 
-mkdir 'tmpl';
+mkdir 'tmpl', 0755;
 
 
 my $t = Template::Like->new;

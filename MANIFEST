@@ -16,8 +16,10 @@ t/exception.t
 t/filter.t
 t/input.t
 t/load_filters.t
+t/long_statement.t
 t/namespace.t
 t/output.t
 t/plugin.t
 t/Plugin/Test/OurPlugin.pm
+t/semicolon.t
 t/tag_style.t

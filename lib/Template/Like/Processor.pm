@@ -34,7 +34,7 @@ my $codeSet = {
   ELSE_POST    => '}',
   END          => '%s',
   FILTER       => '{ my $filterOffset = length $output;',
-  FILTER_POST  => 'substr($output, $filterOffset) = $self->filter(%s, substr($output, $filterOffset)); };',
+  FILTER_POST  => 'substr($output, $filterOffset) = $self->filter(%s, substr($output, $filterOffset), %s); };',
   DUMMY        => "\$output.= %s;\n=pod",
   DUMMY_POST   => "\n=cut\n",
   INSERT       => '$output.= $self->insert(%s);',
@@ -255,7 +255,8 @@ sub load {
       . join(',', $self->INCLUDE_PATH)
       . "]" if not $filepath;
     
-    die "file open endless loop [$filepath]" if ( exists $self->{'OPEND'}->{ $filepath } && $self->{'OPEND'}->{ $filepath } > 10 );
+    die "file open endless loop [$filepath]"
+      if ( exists $self->{'OPEND'}->{ $filepath } && $self->{'OPEND'}->{ $filepath } > 10 );
     
     $self->{'OPEND'}->{ $filepath }++;
     
@@ -358,7 +359,26 @@ sub compile {
     $ele=~s/^\s+//;
     $ele=~s/\s+$//;
     
-    if ( length $ele ) {
+    while ( length $ele ) {
+      
+      my ( $directive, @args );
+      
+      ( $ele, $directive, @args ) = $self->expansion( $ele );
+      
+      if ( $directive eq 'END' ) {
+        $appendSet->( $directive, ( pop @endTask ) );
+      }
+      
+      elsif ( $directive eq 'ELSE' ) {
+        $appendSet->( 'END', ( pop @endTask ) );
+        $appendSet->( $directive );
+      }
+      
+      else {
+        $appendSet->( $directive, @args );
+      }
+      
+      next;
       
       if ( $ele=~/^(CALL|GET|SET|IF|UNLESS|ELSIF|FILTER|INSERT|INCLUDE|DUMMY|PRE_SPACE|POST_SPACE)\s+(\S.*)$/sx ) {
         my $directive = $1;
@@ -474,21 +494,90 @@ sub plugin_use {
 sub expansion {
   my $self       = shift;
   my $expression = shift;
-  my $directive  = shift;
-  my $option     = shift;
   
-  if ( $directive =~/^(FILTER|INSERT|INCLUDE)$/ ) {
-    if ( $expression!~/^\$/ ) {
-      $expression=~s/\'/\\\'/g;
-      return "'$expression'";
+  my ( $directive, @pre_opts, @post_opts );
+  
+  # -----------------------------------------------------------------
+  
+  if ( $expression=~/^(CALL|GET|SET|IF|UNLESS|ELSIF|DUMMY|PRE_SPACE|POST_SPACE)\s+(\S.*)$/sx ) {
+    $directive  = $1;
+    $expression = $2;
+  }
+  
+  # USE
+  elsif ( $expression=~s/^USE\s+// ) {
+    
+    $directive = 'USE';
+    my $key  = '';
+    my $code = '';
+    my @gets = '';
+    my $text = '';
+    
+    # SET
+    if ( $expression=~s/^(\w+)\s*=\s*// ) {
+      $key  = $1.'=';
+    }
+    
+    # ARGUMENTS
+    if ( $expression=~s/^([a-zA-Z0-9\.]+)// ) {
+      $text = $1;
+    }
+    
+    @pre_opts = ( $key.$text );
+  }
+  
+  elsif ( $expression=~/^(FILTER|INSERT|INCLUDE)\s+(\S.*)$/sx ) {
+    
+    $directive = $1;
+    $expression = $2;
+    
+    if ($expression=~s/^\$//) {
+      @post_opts = ('');
+    }
+    
+    else {
+      if ($expression=~s/([^\(\);\s]+)//) {
+        my $name = $1;
+        $name=~s/\'/\\\'/g;
+        @pre_opts = ( "'$name'" );
+      }
     }
   }
   
+  # ELSE
+  elsif ( $expression=~s/ELSE// ) {
+    $directive = 'ELSE';
+  }
+  
+  # END
+  elsif ( $expression=~s/END// ) {
+    $directive = 'END';
+  }
+  
+  # FOREACH
+  elsif ( $expression=~s/^FOREACH\s*(\w+)\s*(?:\=|IN)\s*// ) {
+    $directive = 'FOREACH';
+    @post_opts = ($1);
+  }
+  
+  # WHILE (?:(\w+)\s*\=\s*)?
+  elsif ( $expression=~s/^WHILE\s*// ) {
+    $directive = 'WHILE';
+  }
+  
+  # OTHER
+  else {
+    $directive = 'GET';
+  }
+  
+  
+  # -----------------------------------------------------------------
+  
+  
   my $token;
   my $code = '';
-  my $codeOffset = 0;
-  
-#  my $autoSemiColon = sub { if ($code=~s/([\)\"\'\d])(\s*)$/$1;$2/) { $codeOffset = length $code; } };
+  my $depth = 0;
+  my $start = { 0 => 0 };
   
   while ($expression =~
     s/
@@ -558,6 +647,7 @@ sub expansion {
     
     elsif (defined ($token = $6)) {
       $code = sprintf q{$self->filter('%s', %s, }, $token, $code;
+      $depth++;
     }
     
     elsif (defined ($token = $7)) {
@@ -565,91 +655,65 @@ sub expansion {
     }
     
     elsif (defined ($token = $8)) {
-      
       # method after dot.
       if ( $token=~/^\./ && $code=~/\)$/ ) {
         $token = substr($token, 1);
-        substr($code, $codeOffset) = 
-          '$stash->next(' . substr($code, $codeOffset) . ", '$token', ";
+        substr($code, $start->{ $depth }) = 
+          '$stash->next(' . substr($code, $start->{ $depth }) . ", '$token', ";
       }
       
       # first dollar.
       elsif ( $token=~/^\$(.*)$/ ) {
-#        $autoSemiColon->();
+        $start->{ $depth } = length $code;
         $code.= "\$stash->get('$1', ";
       }
       
       # first dot.
       elsif ( $token=~/^\.(.*)$/ ) {
-        substr($code, $codeOffset) =
-          '$stash->next(' . substr($code, $codeOffset) . ", '$1', ";
+        substr($code, $start->{ $depth }) =
+          '$stash->next(' . substr($code, $start->{ $depth }) . ", '$1', ";
       }
-
+      
       # directive which can omit the dollar.
       else {
-#        $autoSemiColon->();
+        $start->{ $depth } = length $code;
         $code.= "\$stash->get('$token', ";
       }
+      $depth++;
     }
     
     elsif (defined ($token = $9) && $directive eq 'USE') {
       
-      # method after dot.
-      if ( $token=~/^\./ && $code=~/\)$/ ) {
-        $token = substr($token, 1);
-        $code.= "->{'$token'} =";
-        $codeOffset = length $code;
-      }
-      
-      # first dollar.
-      elsif ( $token=~/^\$(.*)$/ ) {
-#        $autoSemiColon->();
-        $code.= "$1 =>";
-        $codeOffset = length $code;
-      }
-      
-      # first dot.
-      elsif ( $token=~/^\.(.*)$/ ) {
-        $code.= "->{'$1'} =";
-        $codeOffset = length $code;
-      }
-      
-      else {
-#        $autoSemiColon->();
-        $code.= "$token =>";
-        $codeOffset = length $code;
-      }
+      $code.= "$token =>";
     }
     
     elsif (defined ($token = $9)) {
       
-      $directive = 'SET';
+      if ( $directive eq 'GET' ) {
+        $directive = 'SET';
+      }
       
       # method after dot.
       if ( $token=~/^\./ && $code=~/\)$/ ) {
         $token = substr($token, 1);
         $code.= "->{'$token'} =";
-        $codeOffset = length $code;
       }
       
       # first dollar.
       elsif ( $token=~/^\$(.*)$/ ) {
-#        $autoSemiColon->();
         $code.= "\$stash->{'$1'} =";
-        $codeOffset = length $code;
       }
       
       # first dot.
       elsif ( $token=~/^\.(.*)$/ ) {
         $code.= "->{'$1'} =";
-        $codeOffset = length $code;
       }
       
       else {
-#        $autoSemiColon->();
         $code.= "\$stash->{'$token'} =";
-        $codeOffset = length $code;
       }
+      
+#      $start->{ $depth } = length $code;
     }
     
     elsif (defined ($token = $10)) {
@@ -657,24 +721,24 @@ sub expansion {
       # method after dot.
       if ( $token=~/^\./ && $code=~/\)$/ ) {
         $token = substr($token, 1);
-        substr($code, $codeOffset) =
-          '$stash->next(' . substr($code, $codeOffset) . ", '$token')";
+        substr($code, $start->{ $depth }) =
+          '$stash->next(' . substr($code, $start->{ $depth }) . ", '$token')";
       }
       
       # first dollar.
       elsif ( $token=~/^\$(.*)$/ ) {
-#        $autoSemiColon->();
+        $start->{ $depth } = length $code;
         $code.= "\$stash->get('$1')";
       }
       
       # first dot.
       elsif ( $token=~/^\.(.*)$/ ) {
-        substr($code, $codeOffset) =
-          '$stash->next(' . substr($code, $codeOffset) . ", '$1')";
+        substr($code, $start->{ $depth }) =
+          '$stash->next(' . substr($code, $start->{ $depth }) . ", '$1')";
       }
       
       else {
-#        $autoSemiColon->();
+        $start->{ $depth } = length $code;
         $code.= "\$stash->get('$token')";
       }
     }
@@ -686,21 +750,23 @@ sub expansion {
         $code.= ' ne ';
       } elsif ( $token eq '_' ) {
         $code.= '.';
-      } elsif ( $token eq ';' && $directive eq 'USE' ) {
-        return ( $code, $self->expansion( $expression, 'GET' ) );
-      } elsif ( $token eq ';' && $directive eq 'GET' ) {
-        return ( $code, $self->expansion( $expression, 'GET' ) );
+      } elsif ( $token eq ')' ) {
+        $code.= ')';
+        $depth--;
+      } elsif ( $token eq ';' ) {
+        return ( $expression, $directive, @pre_opts, $code, @post_opts );
       } else {
         $code.= $token;
       }
     }
     
-#    warn $token if $self->DEBUG;
+#    warn "depth: " . $depth;
+#    warn "start: " . $start->{ $depth };
+#    warn "token: $token";
+#    warn "code: " . $code . "\n";
   }
   
-  
-  return ( $directive, $code ) if $option->{'get_directive'};
-  return $code;
+  return ( $expression, $directive, @pre_opts, $code, @post_opts );
 }
 
 
