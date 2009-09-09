@@ -33,18 +33,22 @@ sub clone {
 sub get {
   my $self = shift;
   my $key  = shift;
-  my $ret  = $self->{$key};
   
   if ( $key=~/([^\.]+)\.(.*)/ ) {
-    return $self->next( $self->{$1}, $2, @_ );
+    return unless exists $self->{ $1 };
+    return $self->next( $self->{ $1 }, $2, @_ );
   }
+  
+  return unless exists $self->{ $key };
+  
+  my $ret  = $self->{ $key };
   
   # execute code ref.
   if ( UNIVERSAL::isa($ret, 'CODE') ) {
     return $ret->( @_ );
   }
   
-  return defined $ret ? $ret : wantarray ? () : '';
+  return $ret;
 }
 
 sub next {
@@ -69,7 +73,7 @@ sub next {
   }
   
   else {
-    return undef;
+    return ;
   }
   
   # execute code ref.
@@ -77,7 +81,7 @@ sub next {
     return $val->();
   }
   
-  return defined $val ? $val : wantarray ? () : '';
+  return $val;
 }
 
 1;

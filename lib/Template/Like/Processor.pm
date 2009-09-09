@@ -307,6 +307,8 @@ sub compile {
   my @endTask;
   my $code = '';
   
+  no warnings 'uninitialized';
+  
   my $appendSet = sub {
     my $directive = shift;
     my $directive_post = $directive . '_POST';
@@ -374,76 +376,13 @@ sub compile {
         $appendSet->( $directive );
       }
       
-      else {
+      elsif ( $directive eq 'ELSIF' ) {
+        $appendSet->( 'END', ( pop @endTask ) );
         $appendSet->( $directive, @args );
       }
       
-      next;
-      
-      if ( $ele=~/^(CALL|GET|SET|IF|UNLESS|ELSIF|FILTER|INSERT|INCLUDE|DUMMY|PRE_SPACE|POST_SPACE)\s+(\S.*)$/sx ) {
-        my $directive = $1;
-        my $expression = $2;
-        my $code = $self->expansion( $expression, $directive );
-        
-        $appendSet->( $directive, $code );
-      }
-      
-      # USE
-      elsif ( $ele=~/^USE\s+(\S.*)$/sx ) {
-        
-        my $directive = 'USE';
-        my $text = $1;
-        my $code = '';
-        my @gets = '';
-        my $key  = '';
-        
-        # SET
-        if ( $text=~/^(\w+)\s*=\s*(.+)$/ ) {
-          $key  = $1.'=';
-          $text = $2;
-        }
-        
-        # ARGUMENTS
-        if ( $text=~/^([a-zA-Z0-9\.]+)(\(.*)$/ ) {
-          $text = $1;
-          ( $code, @gets ) = $self->expansion( $2, 'USE' );
-        }
-        
-        elsif ( $text=~/^([a-zA-Z0-9\.]+)\s*;(.*)$/ ) {
-          $text = $1;
-          @gets = $self->expansion( $2, 'GET' );
-        }
-        
-        $appendSet->( $directive, $key.$text, $code );
-        
-        $appendSet->( 'GET', $_ ) for ( grep /./, @gets );
-      }
-      
-      # ELSE
-      elsif ( $ele eq 'ELSE' ) {
-        
-        $appendSet->( 'END', ( pop @endTask ) );
-        $appendSet->( $ele );
-      }
-      
-      # END
-      elsif ( $ele eq 'END' ) {
-        $appendSet->( $ele, ( pop @endTask ) );
-      }
-      
-      # FOREACH
-      elsif ( $ele=~/^FOREACH\s*(\w+)\s*(?:\=|IN)\s*(\S.*)\s*$/sx ) {
-        $appendSet->( 'FOREACH', $self->expansion( $2, 'FOREACH' ), $1 );
-      }
-      
-      # WHILE (?:(\w+)\s*\=\s*)?
-      elsif ( $ele=~/^WHILE\s*(.*)\s*$/sx ) {
-        $appendSet->( 'WHILE', $self->expansion( $1, 'WHILE' ) );
-      }
-      
-      # OTHER
       else {
-        $appendSet->( $self->expansion( $ele, 'GET', { get_directive => 1 } ) );
+        $appendSet->( $directive, @args );
       }
     }
   }
@@ -499,9 +438,8 @@ sub expansion {
   
   # -----------------------------------------------------------------
   
-  if ( $expression=~/^(CALL|GET|SET|IF|UNLESS|ELSIF|DUMMY|PRE_SPACE|POST_SPACE)\s+(\S.*)$/sx ) {
+  if ( $expression=~s/^(CALL|GET|SET|IF|UNLESS|ELSIF|DUMMY|PRE_SPACE|POST_SPACE)\s+//x ) {
     $directive  = $1;
-    $expression = $2;
   }
   
   # USE
@@ -532,7 +470,6 @@ sub expansion {
     $expression = $2;
     
     if ($expression=~s/^\$//) {
-      @post_opts = ('');
     }
     
     else {
@@ -600,7 +537,7 @@ sub expansion {
         (-?\d+(?:\.\d+)?)          # numbers
       |
         # filename matches in $5
-        ((?=.*\/)(?!.*\/$)(?:\S+))
+        ((?!))
       |
         # an identifier matches in $6
         \s*\|\s*([\w]+)\(          # variable identifier
@@ -829,8 +766,9 @@ sub execute {
   
   warn $code if $self->DEBUG;
   
+  no warnings 'uninitialized';
   eval $code;
-  die $@ if $@;
+  die sprintf("Template::Like Error: %s\ncode: \n%s", $@, $code) if $@;
   
   return $output;
 }

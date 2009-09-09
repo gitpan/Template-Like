@@ -1,4 +1,4 @@
-use Test::More tests => 49;
+use Test::More tests => 50;
 
 BEGIN { use_ok('Template::Like') };
 
@@ -107,13 +107,14 @@ my $t = Template::Like->new( DEBUG => 0 );
   $output = '';
 }
 #-----------------------------
-# IF/ELSE
+# IF/ELSIF/ELSE
 #-----------------------------
 {
   my $output;
-  my $input   = q{[% IF bool %][% ELSE %]abc[% END %]};
+  my $input   = q{[% IF bool %][% ELSIF bool2 %]123[% ELSE %]abc[% END %]};
   my $result1 = q{abc};
   my $result2 = q{};
+  my $result3 = q{123};
   $t->process(\$input, { bool => "a" },   \$output);
   is($result2, $output, "string");
   $output = '';
@@ -132,6 +133,8 @@ my $t = Template::Like->new( DEBUG => 0 );
   $t->process(\$input, { },               \$output);
   is($result1, $output, "nothing");
   $output = '';
+  $t->process(\$input, { bool2 => 1 },   \$output);
+  is($result3, $output, "elsif one");
 }
 #-----------------------------
 # UNLESS

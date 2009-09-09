@@ -149,6 +149,23 @@ sub scalar_uri {
   return $val;
 }
 
+sub scalar_comma {
+  my $class = shift;
+  my $num   = shift;
+  my $len   = shift;
+  
+  $len ||= 3;
+  
+  my ( $i, $j );
+  if ($num =~ /^[-+]?\d\d\d\d+/g) {
+    for ($i = pos($num) - $len, $j = $num =~ /^[-+]/; $i > $j; $i -= $len) {
+      substr($num, $i, 0) = ',';
+    }
+  }
+  
+  return $num;
+}
+
 sub array_first {
   my $class = shift;
   my $val   = shift;

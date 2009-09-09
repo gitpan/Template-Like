@@ -64,4 +64,19 @@ sub replace {
   return $text;
 }
 
+sub comma {
+  my ( $self, $num, $len ) = @_;
+  
+  $len ||= 3;
+  
+  my ( $i, $j );
+  if ($num =~ /^[-+]?\d\d\d\d+/g) {
+    for ($i = pos($num) - $len, $j = $num =~ /^[-+]/; $i > $j; $i -= $len) {
+      substr($num, $i, 0) = ',';
+    }
+  }
+  
+  return $num;
+}
+
 1;
