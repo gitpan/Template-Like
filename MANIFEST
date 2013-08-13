@@ -23,3 +23,4 @@ t/plugin.t
 t/Plugin/Test/OurPlugin.pm
 t/semicolon.t
 t/tag_style.t
+META.json                                Module JSON meta-data (added by MakeMaker)

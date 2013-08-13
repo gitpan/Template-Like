@@ -1,5 +1,8 @@
 Revision history for Perl extension Template::Like.
 
+0.12  Tue Aug 13 13:37:16 JST 2013
+	- support perl 5.17 and later
+
 0.11  Mon Feb  4 01:18:12 JST 2008
 	- elsif bug fix.
 	- add filter "comma" [% calc | comma %] => 1,00

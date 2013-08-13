@@ -6,7 +6,7 @@ use IO::File;
 
 use Template::Like::Processor;
 
-$Template::Like::VERSION = '0.11';
+$Template::Like::VERSION = '0.12';
 
 #=====================================================================
 # new
@@ -22,11 +22,11 @@ $Template::Like::VERSION = '0.11';
 #=====================================================================
 sub new {
   my $class = shift;
-  
+
   my $self  = bless {
     OPTION => ref $_[0] ? $_[0] : { @_ },
   }, $class;
-  
+
   return $self;
 }
 
@@ -53,15 +53,15 @@ sub process {
   my $params = shift || {};
   my $output = shift || undef;
   my $option = shift || {};
-  
+
   eval {
     my $processor = Template::Like::Processor->new( $self->_option, $params, $option );
-    
+
     $processor->finalize( $processor->process( $input ), $output );
   };
-  
+
   $self->error($@);
-  
+
   die $@ if $@;
   return if $@;
   return 1;
@@ -84,7 +84,7 @@ sub process {
 #=====================================================================
 sub error  {
   $_[0]->{'ERROR'} = $_[1] if @_ > 1;
-  $_[0]->{'ERROR'}; 
+  $_[0]->{'ERROR'};
 }
 
 sub _option { $_[0]->{'OPTION'}; }
@@ -98,11 +98,11 @@ Template::Like - Lightweight Template Engine.
 =head1 SYNOPSIS
 
     #!/usr/bin/perl
-    
+
     use lib 'lib';
     use strict;
     use Template::Like;
-    
+
     my $input = q{
     [% var %]
     [% FOREACH var = vars %]
@@ -112,21 +112,21 @@ Template::Like - Lightweight Template Engine.
     [% IF bool %]TURE!![% ELSE %]FALSE!![% END %]
     [% UNLESS bool %]TURE!![% ELSE %]FALSE!![% END %]
     };
-    
+
     my $param = {
       var  => "HOGE",
       vars => [ { name => "FOO" }, { name => "BAR" } ],
       bool => 1
     };
-    
+
     my $t = Template::Like->new;
-    
+
     my $output = "";
-    
+
     $t->process(\$input, $param, \$output);
-    
+
     print $output;
-    
+
     exit;
 
 
@@ -134,11 +134,11 @@ result
 
 
     HOGE
-    
+
     - FOO
-    
+
     - BAR
-    
+
     HOGE
     TURE!!
     FALSE!!
